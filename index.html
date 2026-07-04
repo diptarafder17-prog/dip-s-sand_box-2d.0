@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Sandbox Game - Floating and Sodium Version</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background-color: #0a0a0a;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            background-color: #1a1a1a;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #333;
+            flex-shrink: 0;
+        }
+        .header h1 {
+            font-size: 22px;
+            color: #00e5ff;
+            text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+        }
+        .instructions {
+            font-size: 13px;
+            color: #aaa;
+        }
+        .instructions span {
+            color: #ff9800;
+            font-weight: bold;
+        }
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 220px;
+            background-color: #141414;
+            padding: 15px;
+            border-right: 2px solid #333;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .section-title {
+            font-size: 14px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        .element-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .element-btn {
+            padding: 10px 6px;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            color: white;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .element-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        .element-btn.active {
+            border-color: #fff;
+            box-shadow: 0 0 15px rgba(255,255,255,0.3);
+            transform: scale(1.05);
+        }
+        .btn-sand { background-color: #e6c288; color: #5c4a2a; }
+        .btn-water { background-color: #2196f3; }
+        .btn-soil { background-color: #5d4037; }
+        .btn-stone { background-color: #78909c; }
+        .btn-sodium { background-color: #e0e0e0; color: #333; }
+        .btn-fire { background-color: #ff5722; }
+        .btn-oil { background-color: #3e2723; }
+        .btn-plant { background-color: #4caf50; }
+        .btn-gunpowder { background-color: #ff1744; }
+        .btn-ice { background-color: #b3e5fc; color: #1565c0; }
+        .btn-lava { background-color: #ff3d00; }
+        .btn-steam { background-color: #cfd8dc; color: #546e7a; }
+        .btn-wood { background-color: #8d6e63; }
+        .btn-glass { background-color: #e1f5fe; color: #0277bd; }
+        .btn-erase { background-color: #424242; }
+        .btn-clear { background-color: #b71c1c; }
+
+        .slider-container {
+            margin-top: 8px;
+        }
+        .slider-container label {
+            font-size: 12px;
+            color: #aaa;
+            display: block;
+            margin-bottom: 6px;
+        }
+        input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: #333;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00e5ff;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+        }
+        .brush-size-display {
+            text-align: center;
+            font-size: 12px;
+            color: #00e5ff;
+            margin-top: 4px;
+        }
+
+        .info-box {
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #bbb;
+            border: 1px solid #333;
+        }
+        .info-box strong {
+            color: #fff;
+        }
+        .info-box .highlight {
+            color: #ff9800;
+        }
+        .info-box .sodium-note {
+            color: #e0e0e0;
+            background: rgba(255,255,255,0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.1);
+        }
+        .fps-counter {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 12px;
+            color: #0f0;
+            background: rgba(0,0,0,0.7);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .particle-count {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 12px;
+            color: #ff9800;
+            background: rgba(0,0,0,0.7);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎮 2D Sandbox Game - Floating and Sodium Version</h1>
+        <div class="instructions">
+            <span>💡 Stones and Sodium can float</span> &nbsp;|&nbsp; 
+            <span>⚡ Sodium is indestructible</span> &nbsp;|&nbsp; 
+            Draw to create elements • Watch fire spread & explosions
+        </div>
+    </div>
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="section-title">🧪 Elements</div>
+            <div class="element-grid">
+                <button class="element-btn btn-sand active" data-element="sand">Sand</button>
+                <button class="element-btn btn-water" data-element="water">Water</button>
+                <button class="element-btn btn-soil" data-element="soil">Soil</button>
+                <button class="element-btn btn-stone" data-element="stone">Stone</button>
+                <button class="element-btn btn-sodium" data-element="sodium">Sodium</button>
+                <button class="element-btn btn-fire" data-element="fire">Fire</button>
+                <button class="element-btn btn-oil" data-element="oil">Oil</button>
+                <button class="element-btn btn-plant" data-element="plant">Plant</button>
+                <button class="element-btn btn-gunpowder" data-element="gunpowder">Gunpowder</button>
+                <button class="element-btn btn-ice" data-element="ice">Ice</button>
+                <button class="element-btn btn-lava" data-element="lava">Lava</button>
+                <button class="element-btn btn-steam" data-element="steam">Steam</button>
+                <button class="element-btn btn-wood" data-element="wood">Wood</button>
+                <button class="element-btn btn-glass" data-element="glass">Glass</button>
+            </div>
+
+            <div class="section-title">🎨 Tools</div>
+            <div class="element-grid">
+                <button class="element-btn btn-erase" data-element="erase">Eraser</button>
+                <button class="element-btn btn-clear" data-element="clear">Clear All</button>
+            </div>
+
+            <div class="slider-container">
+                <label>🖌️ Brush Size (Grain Size)</label>
+                <input type="range" id="brushSize" min="1" max="20" value="3">
+                <div class="brush-size-display">Size: <span id="sizeValue">3</span> px</div>
+            </div>
+
+            <div class="info-box">
+                <strong>📝 How to Play:</strong><br>
+                • Click & drag to draw elements<br>
+                • Select element from the grid<br>
+                • Adjust brush size with slider<br>
+                <br>
+                <strong>🔥 Reactions:</strong><br>
+                • <span class="highlight">Fire + Oil/Gunpowder</span> = Explosion<br>
+                • <span class="highlight">Lava + Water</span> = Steam<br>
+                • <span class="highlight">Fire + Plant/Wood</span> = Burns<br>
+                • <span class="highlight">Sodium + Water</span> = Explosion<br>
+                <br>
+                <span class="sodium-note">⚡ Sodium is indestructible & floats!</span><br>
+                <span class="sodium-note">🪨 Stones also float on water!</span>
+            </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="gameCanvas"></canvas>
+            <div class="fps-counter" id="fps">FPS: 60</div>
+            <div class="particle-count" id="particleCount">Particles: 0</div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d', { alpha: false });
+        const fpsEl = document.getElementById('fps');
+        const particleCountEl = document.getElementById('particleCount');
+
+        // Canvas setup
+        const CELL_SIZE = 3;
+        let GRID_W, GRID_H;
+        let grid = [];
+        let nextGrid = [];
+        let isDrawing = false;
+        let currentElement = 'sand';
+        let brushSize = 3;
+        let mouseX = 0, mouseY = 0;
+
+        // Element definitions
+        const ELEMENTS = {
+            EMPTY: 0,
+            SAND: 1,      
+            WATER: 2,     
+            SOIL: 3,      
+            STONE: 4,     
+            SODIUM: 5,    
+            FIRE: 6,      
+            OIL: 7,       
+            PLANT: 8,     
+            GUNPOWDER: 9, 
+            ICE: 10,      
+            LAVA: 11,     
+            STEAM: 12,    
+            WOOD: 13,     
+            GLASS: 14,    
+        };
+
+        const ELEMENT_NAMES = {
+            [ELEMENTS.EMPTY]: 'empty',
+            [ELEMENTS.SAND]: 'sand',
+            [ELEMENTS.WATER]: 'water',
+            [ELEMENTS.SOIL]: 'soil',
+            [ELEMENTS.STONE]: 'stone',
+            [ELEMENTS.SODIUM]: 'sodium',
+            [ELEMENTS.FIRE]: 'fire',
+            [ELEMENTS.OIL]: 'oil',
+            [ELEMENTS.PLANT]: 'plant',
+            [ELEMENTS.GUNPOWDER]: 'gunpowder',
+            [ELEMENTS.ICE]: 'ice',
+            [ELEMENTS.LAVA]: 'lava',
+            [ELEMENTS.STEAM]: 'steam',
+            [ELEMENTS.WOOD]: 'wood',
+            [ELEMENTS.GLASS]: 'glass',
+        };
+
+        const COLORS = {
+            [ELEMENTS.EMPTY]: [0, 0, 0],
+            [ELEMENTS.SAND]: [[230, 194, 136], [220, 184, 126], [240, 204, 146]],
+            [ELEMENTS.WATER]: [[33, 150, 243], [25, 140, 235], [41, 160, 250]],
+            [ELEMENTS.SOIL]: [[93, 64, 55], [83, 54, 45], [103, 74, 65]],
+            [ELEMENTS.STONE]: [[120, 144, 156], [110, 134, 146], [130, 154, 166]],
+            [ELEMENTS.SODIUM]: [[224, 224, 224], [214, 214, 214], [234, 234, 234]],
+            [ELEMENTS.FIRE]: [[255, 87, 34], [255, 152, 0], [255, 61, 0]],
+            [ELEMENTS.OIL]: [[62, 39, 35], [72, 49, 45], [52, 29, 25]],
+            [ELEMENTS.PLANT]: [[76, 175, 80], [66, 165, 70], [86, 185, 90]],
+            [ELEMENTS.GUNPOWDER]: [[255, 23, 68], [245, 13, 58], [255, 33, 78]],
+            [ELEMENTS.ICE]: [[179, 229, 252], [169, 219, 242], [189, 239, 255]], 
+            [ELEMENTS.LAVA]: [[255, 61, 0], [255, 87, 34], [255, 23, 0]],
+            [ELEMENTS.STEAM]: [[207, 216, 220], [197, 206, 210], [217, 226, 230]],
+            [ELEMENTS.WOOD]: [[141, 110, 99], [131, 100, 89], [151, 120, 109]],
+            [ELEMENTS.GLASS]: [[225, 245, 254], [215, 235, 244], [235, 255, 255]], 
+        };
+
+        // Special properties
+        const FLOATS = [ELEMENTS.STONE, ELEMENTS.SODIUM]; 
+        const INDESTRUCTIBLE = [ELEMENTS.SODIUM, ELEMENTS.GLASS];
+
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            GRID_W = Math.floor(canvas.width / CELL_SIZE);
+            GRID_H = Math.floor(canvas.height / CELL_SIZE);
+            
+            const newGrid = new Uint8Array(GRID_W * GRID_H);
+            const newNext = new Uint8Array(GRID_W * GRID_H);
+            
+            if (grid.length > 0) {
+                for (let y = 0; y < Math.min(GRID_H, oldH); y++) {
+                    for (let x = 0; x < Math.min(GRID_W, oldW); x++) {
+                        newGrid[y * GRID_W + x] = grid[y * oldW + x];
+                    }
+                }
+            }
+            
+            grid = newGrid;
+            nextGrid = newNext;
+            oldW = GRID_W;
+            oldH = GRID_H;
+        }
+        let oldW = 0, oldH = 0;
+
+        function getCell(x, y) {
+            if (x < 0 || x >= GRID_W || y < 0 || y >= GRID_H) return ELEMENTS.STONE;
+            return grid[y * GRID_W + x];
+        }
+
+        function setCell(x, y, val) {
+            if (x < 0 || x >= GRID_W || y < 0 || y >= GRID_H) return;
+            nextGrid[y * GRID_W + x] = val;
+        }
+
+        function isEmpty(x, y) {
+            return getCell(x, y) === ELEMENTS.EMPTY;
+        }
+
+        function isWater(x, y) {
+            return getCell(x, y) === ELEMENTS.WATER;
+        }
+
+        function canFloat(x, y) {
+            const cell = getCell(x, y);
+            return FLOATS.includes(cell);
+        }
+
+        function isIndestructible(x, y) {
+            const cell = getCell(x, y);
+            return INDESTRUCTIBLE.includes(cell);
+        }
+
+        function isFlammable(x, y) {
+            const cell = getCell(x, y);
+            return [ELEMENTS.OIL, ELEMENTS.PLANT, ELEMENTS.WOOD, ELEMENTS.GUNPOWDER].includes(cell);
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function update() {
+            nextGrid.set(grid);
+            const processed = new Uint8Array(GRID_W * GRID_H);
+
+            // First pass: rising elements
+            for (let y = 0; y < GRID_H; y++) {
+                for (let x = 0; x < GRID_W; x++) {
+                    const idx = y * GRID_W + x;
+                    if (processed[idx]) continue;
+                    const cell = grid[idx];
+                    
+                    if (cell === ELEMENTS.FIRE) {
+                        processed[idx] = 1;
+                        updateFire(x, y, idx);
+                    } else if (cell === ELEMENTS.STEAM) {
+                        processed[idx] = 1;
+                        updateSteam(x, y, idx);
+                    }
+                }
+            }
+
+            // Second pass: falling elements
+            for (let y = GRID_H - 1; y >= 0; y--) {
+                const xOrder = [];
+                for (let x = 0; x < GRID_W; x++) xOrder.push(x);
+                shuffleArray(xOrder);
+                
+                for (let xi = 0; xi < GRID_W; xi++) {
+                    const x = xOrder[xi];
+                    const idx = y * GRID_W + x;
+                    if (processed[idx]) continue;
+                    const cell = grid[idx];
+                    
+                    if (cell === ELEMENTS.SAND) {
+                        processed[idx] = 1;
+                        updateSand(x, y, idx);
+                    } else if (cell === ELEMENTS.WATER) {
+                        processed[idx] = 1;
+                        updateWater(x, y, idx);
+                    } else if (cell === ELEMENTS.SOIL) {
+                        processed[idx] = 1;
+                        updateSoil(x, y, idx);
+                    } else if (cell === ELEMENTS.STONE) {
+                        processed[idx] = 1;
+                        updateStone(x, y, idx);
+                    } else if (cell === ELEMENTS.SODIUM) {
+                        processed[idx] = 1;
+                        updateSodium(x, y, idx);
+                    } else if (cell === ELEMENTS.OIL) {
+                        processed[idx] = 1;
+                        updateOil(x, y, idx);
+                    } else if (cell === ELEMENTS.GUNPOWDER) {
+                        processed[idx] = 1;
+                        updateGunpowder(x, y, idx);
+                    } else if (cell === ELEMENTS.ICE) {
+                        processed[idx] = 1;
+                        updateIce(x, y, idx);
+                    } else if (cell === ELEMENTS.LAVA) {
+                        processed[idx] = 1;
+                        updateLava(x, y, idx);
+                    }
+                }
+            }
+
+            [grid, nextGrid] = [nextGrid, grid];
+        }
+
+        function updateSand(x, y, idx) {
+            if (y + 1 < GRID_H) {
+                const below = grid[(y + 1) * GRID_W + x];
+                if (below === ELEMENTS.EMPTY || below === ELEMENTS.WATER || below === ELEMENTS.OIL || below === ELEMENTS.STEAM) {
+                    nextGrid[(y + 1) * GRID_W + x] = ELEMENTS.SAND;
+                    nextGrid[idx] = below;
+                    return;
+                }
+                const dirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
+                for (const dx of dirs) {
+                    const nx = x + dx;
+                    if (nx >= 0 && nx < GRID_W) {
+                        const diag = grid[(y + 1) * GRID_W + nx];
+                        if (diag === ELEMENTS.EMPTY || diag === ELEMENTS.WATER || diag === ELEMENTS.OIL) {
+                            nextGrid[(y + 1) * GRID_W + nx] = ELEMENTS.SAND;
+                            nextGrid[idx] = diag;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        function updateWater(x, y, idx) {
+            if (y + 1 < GRID_H) {
+                const below = grid[(y + 1) * GRID_W + x];
+                if (below === ELEMENTS.EMPTY || below === ELEMENTS.STEAM) {
+                    nextGrid[(y + 1) * GRID_W + x] = ELEMENTS.WATER;
+                    nextGrid[idx] = below;
+                    return;
+                }
+            }
+            const dirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
+            for (const dx of dirs) {
+                const nx = x + dx;
+                if (nx >= 0 && nx < GRID_W) {
+                    const side = grid[y * GRID_W + nx];
+                    if (side === ELEMENTS.EMPTY || side === ELEMENTS.STEAM) {
+                        nextGrid[y * GRID_W + nx] = ELEMENTS.WATER;
+                        nextGrid[idx] = side;
+                        return;
+                    }
+                }
+            }
+            checkLavaContact(x, y, idx, ELEMENTS.WATER);
+        }
+
+        function updateSoil(x, y, idx) {
+            if (y + 1 < GRID_H) {
+                const below = grid[(y + 1) * GRID_W + x];
+                if (below === ELEMENTS.EMPTY || below === ELEMENTS.WATER || below === ELEMENTS.OIL || below === ELEMENTS.STEAM) {
+                    nextGrid[(y + 1) * GRID_W + x] = ELEMENTS.SOIL;
+                    nextGrid[idx] = below;
+                    return;
+                }
+                const dirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
+                for (const dx of dirs) {
+                    const nx = x + dx;
+                    if (nx >= 0 && nx < GRID_W) {
+                        const diag = grid[(y + 1) * GRID_W + nx];
+                        if (diag === ELEMENTS.EMPTY || diag === ELEMENTS.WATER || diag === ELEMENTS.OIL) {
+                            nextGrid[(y + 1) * GRID_W + nx] = ELEMENTS.SOIL;
+                            nextGrid[idx] = diag;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        function updateStone(x, y, idx) {
+            if (y + 1 < GRID_H) {
+                const below = grid[(y + 1) * GRID_W + x];
+                if (below === ELEMENTS.WATER) return;
+                if (below === ELEMENTS.EMPTY || below === ELEMENTS.OIL || below === ELEMENTS.STEAM) {
+                    nextGrid[(y + 1) * GRID_W + x] = ELEMENTS.STONE;
+                    nextGrid[idx] = below;
+                    return;
+                }
+                const dirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
+                for (const dx of dirs) {
+                    const nx = x + dx;
+                    if (nx >= 0 && nx < GRID_W) {
+                        const diag = grid[(y + 1) * GRID_W + nx];
+                        if (diag === ELEMENTS.EMPTY || diag === ELEMENTS.OIL || diag === ELEMENTS.STEAM) {
+                            nextGrid[(y + 1) * GRID_W + nx] = ELEMENTS.STONE;
+                            nextGrid[idx] = diag;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        function updateSodium(x, y, idx) {
+            if (y + 1 < GRID_H) {
+                const below = grid[(y + 1) * GRID_W + x];
+                if (below === ELEMENTS.WATER || below === ELEMENTS.OIL || below === ELEMENTS.LAVA) {
+                    if (below === ELEMENTS.WATER) {
+                        createExplosion(x, y + 1, 8);
+                        return;
+                    }
+                    return;
+                }
+                if (below === ELEMENTS.EMPTY || below === ELEMENTS.STEAM || below === ELEMENTS.FIRE) {
+                    nextGrid[(y + 1) * GRID_W + x] = ELEMENTS.SODIUM;
+                    nextGrid[idx] = below;
+                    return;
+                }
+                const dirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
+                for (const dx of dirs) {
+                    const nx = x + dx;
+                    if (nx >= 0 && nx < GRID_W) {
+                        const diag = grid[(y + 1) * GRID_W + nx];
+                        if (diag === ELEMENTS.EMPTY || diag === ELEMENTS.STEAM || diag === ELEMENTS.FIRE) {
+                            nextGrid[(y + 1) * GRID_W + nx] = ELEMENTS.SODIUM;
+                            nextGrid[idx] = diag;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        function updateFire(x, y, idx) {
+            const dirs = [[0, -1], [-1, -1], [1, -1], [-1, 0], [1, 0], [0, 1], [-1, 1], [1, 1]];
+            
+            for (const [dx, dy] of dirs) {
+                const nx = x + dx, ny = y + dy;
+                if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H) {
+                    const nidx = ny * GRID_W + nx;
+                    const neighbor = grid[nidx];
+                    
+                    if (neighbor === ELEMENTS.OIL) {
+                        if (Math.random() < 0.3) {
+                            nextGrid[nidx] = ELEMENTS.FIRE;
+                            if (Math.random() < 0.05) {
+                                createExplosion(nx, ny, 5);
+                            }
+                        }
+                    } else if (neighbor === ELEMENTS.GUNPOWDER) {
+                        createExplosion(nx, ny, 12);
+                        return;
+                    } else if (neighbor === ELEMENTS.PLANT || neighbor === ELEMENTS.WOOD) {
+                        if (Math.random() < 0.15) {
+                            nextGrid[nidx] = ELEMENTS.FIRE;
+                        }
+                    } else if (neighbor === ELEMENTS.ICE) {
+                        if (Math.random() < 0.2) {
+                            nextGrid[nidx] = ELEMENTS.WATER;
+                        }
+                    } else if (neighbor === ELEMENTS.WATER) {
+                        if (Math.random() < 0.1) {
+                            nextGrid[nidx] = ELEMENTS.STEAM;
+                        }
+                    }
+                }
+            }
+            
+            if (y > 0) {
+                const above = grid[(y - 1) * GRID_W + x];
+                if (above === ELEMENTS.EMPTY || above === ELEMENTS.STEAM) {
+                    nextGrid[(y - 1) * GRID_W + x] = ELEMENTS.FIRE;
+                    nextGrid[idx] = above;
+                    return;
+                }
+                const sideDirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
+                for (const dx of sideDirs) {
+                    const nx = x + dx;
+                    if (nx >= 0 && nx < GRID_W) {
+                        const side = grid[(y - 1) * GRID_W + nx];
+                        if (side === ELEMENTS.EMPTY || side === ELEMENTS.STEAM) {
+                            nextGrid[(y - 1) * GRID_W + nx] = ELEMENTS.FIRE;
+                            nextGrid[idx] = side;
+                            return;
+                        }
+                    }
+                }
+            }
+            
+            if (Math.random() < 0.03) {
+                nextGrid[idx] = ELEMENTS.EMPTY;
+            }
+        }
+
+        function updateOil(x, y, idx) {
+            if (y + 1 < GRID_H) {
+                const below = grid[(y + 1) * GRID_W + x];
+                if (below === ELEMENTS.EMPTY || below === ELEMENTS.STEAM) {
+                    nextGrid[(y + 1) * GRID_W + x] = ELEMENTS.OIL;
+                    nextGrid[idx] = below;
+                    return;
+                }
+            }
+            const dirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
+            for (const dx of dirs) {
+                for (let step = 1; step <= 2; step++) {
+                    const nx = x + dx * step;
+                    if (nx >= 0 && nx < GRID_W) {
+                        const side = grid[y * GRID_W + nx];
+                        if (side === ELEMENTS.EMPTY || side === ELEMENTS.STEAM) {
+                            nextGrid[y * GRID_W + nx] = ELEMENTS.OIL;
+                            nextGrid[idx] = side;
+                            return;
+                        } else if (side !== ELEMENTS.EMPTY) {
+                            break;
+                        }
+                    }
+                }
+            }
+            checkFireContact(x, y, idx, ELEMENTS.OIL);
+        }
+
+        function updateGunpowder(x, y, idx) {
+            if (y + 1 < GRID_H) {
+                const below = grid[(y + 1) * GRID_W + x];
+                if (below === ELEMENTS.EMPTY || below === ELEMENTS.WATER || below === ELEMENTS.OIL || below === ELEMENTS.STEAM) {
+                    nextGrid[(y + 1) * GRID_W + x] = ELEMENTS.GUNPOWDER;
+                    nextGrid[idx] = below;
+                    return;
+                }
+                const dirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
+                for (const dx of dirs) {
+                    const nx = x + dx;
+                    if (nx >= 0 && nx < GRID_W) {
+                        const diag = grid[(y + 1) * GRID_W + nx];
+                        if (diag === ELEMENTS.EMPTY || diag === ELEMENTS.WATER || diag === ELEMENTS.OIL) {
+                            nextGrid[(y + 1) * GRID_W + nx] = ELEMENTS.GUNPOWDER;
+                            nextGrid[idx] = diag;
+                            return;
+                        }
+                    }
+                }
+            }
+            checkFireContact(x, y, idx, ELEMENTS.GUNPOWDER);
+        }
+
+        function updateIce(x, y, idx) {
+            if (y + 1 < GRID_H) {
+                const below = grid[(y + 1) * GRID_W + x];
+                if (below === ELEMENTS.EMPTY || below === ELEMENTS.WATER || below === ELEMENTS.STEAM) {
+                    if (Math.random() < 0.3) {
+                        nextGrid[(y + 1) * GRID_W + x] = ELEMENTS.ICE;
+                        nextGrid[idx] = below;
+                        return;
+                    }
+                }
+            }
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (dx === 0 && dy === 0) continue;
+                    const nx = x + dx, ny = y + dy;
+                    if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H) {
+                        const neighbor = grid[ny * GRID_W + nx];
+                        if (neighbor === ELEMENTS.FIRE || neighbor === ELEMENTS.LAVA) {
+                            if (Math.random() < 0.15) {
+                                nextGrid[idx] = ELEMENTS.WATER;
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function updateLava(x, y, idx) {
+            if (y + 1 < GRID_H) {
+                const below = grid[(y + 1) * GRID_W + x];
+                if (below === ELEMENTS.EMPTY || below === ELEMENTS.STEAM) {
+                    nextGrid[(y + 1) * GRID_W + x] = ELEMENTS.LAVA;
+                    nextGrid[idx] = below;
+                    return;
+                }
+                if (below === ELEMENTS.WATER) {
+                    nextGrid[(y + 1) * GRID_W + x] = ELEMENTS.STONE;
+                    nextGrid[idx] = ELEMENTS.STEAM;
+                    return;
+                }
+                if (below === ELEMENTS.ICE) {
+                    nextGrid[(y + 1) * GRID_W + x] = ELEMENTS.LAVA;
+                    nextGrid[idx] = ELEMENTS.STEAM;
+                    return;
+                }
+            }
+            if (Math.random() < 0.3) {
+                const dirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
+                for (const dx of dirs) {
+                    const nx = x + dx;
+                    if (nx >= 0 && nx < GRID_W) {
+                        const side = grid[y * GRID_W + nx];
+                        if (side === ELEMENTS.EMPTY || side === ELEMENTS.STEAM) {
+                            nextGrid[y * GRID_W + nx] = ELEMENTS.LAVA;
+                            nextGrid[idx] = side;
+                            return;
+                        }
+                        if (side === ELEMENTS.WATER) {
+                            nextGrid[y * GRID_W + nx] = ELEMENTS.STONE;
+                            nextGrid[idx] = ELEMENTS.STEAM;
+                            return;
+                        }
+                    }
+                }
+            }
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (dx === 0 && dy === 0) continue;
+                    const nx = x + dx, ny = y + dy;
+                    if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H) {
+                        const neighbor = grid[ny * GRID_W + nx];
+                        if (neighbor === ELEMENTS.WOOD || neighbor === ELEMENTS.PLANT) {
+                            if (Math.random() < 0.2) {
+                                nextGrid[ny * GRID_W + nx] = ELEMENTS.FIRE;
+                            }
+                        } else if (neighbor === ELEMENTS.ICE) {
+                            if (Math.random() < 0.3) {
+                                nextGrid[ny * GRID_W + nx] = ELEMENTS.WATER;
+                            }
+                        } else if (neighbor === ELEMENTS.GLASS) {
+                            if (Math.random() < 0.1) {
+                                nextGrid[ny * GRID_W + nx] = ELEMENTS.LAVA;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function updateSteam(x, y, idx) {
+            if (y > 0) {
+                const above = grid[(y - 1) * GRID_W + x];
+                if (above === ELEMENTS.EMPTY) {
+                    nextGrid[(y - 1) * GRID_W + x] = ELEMENTS.STEAM;
+                    nextGrid[idx] = ELEMENTS.EMPTY;
+                    return;
+                }
+                const dirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
+                for (const dx of dirs) {
+                    const nx = x + dx;
+                    if (nx >= 0 && nx < GRID_W) {
+                        const side = grid[(y - 1) * GRID_W + nx];
+                        if (side === ELEMENTS.EMPTY) {
+                            nextGrid[(y - 1) * GRID_W + nx] = ELEMENTS.STEAM;
+                            nextGrid[idx] = ELEMENTS.EMPTY;
+                            return;
+                        }
+                    }
+                }
+            }
+            if (Math.random() < 0.02) {
+                nextGrid[idx] = ELEMENTS.EMPTY;
+            }
+        }
+
+        function checkFireContact(x, y, idx, elementType) {
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (dx === 0 && dy === 0) continue;
+                    const nx = x + dx, ny = y + dy;
+                    if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H) {
+                        const neighbor = grid[ny * GRID_W + nx];
+                        if (neighbor === ELEMENTS.FIRE || neighbor === ELEMENTS.LAVA) {
+                            if (elementType === ELEMENTS.OIL) {
+                                if (Math.random() < 0.2) {
+                                    createExplosion(x, y, 6);
+                                    return; 
+                                }
+                            } else if (elementType === ELEMENTS.GUNPOWDER) {
+                                createExplosion(x, y, 12);
+                                return; 
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function checkLavaContact(x, y, idx, elementType) {
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (dx === 0 && dy === 0) continue;
+                    const nx = x + dx, ny = y + dy;
+                    if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H) {
+                        const neighbor = grid[ny * GRID_W + nx];
+                        if (neighbor === ELEMENTS.LAVA) {
+                            nextGrid[idx] = ELEMENTS.STEAM;
+                        }
+                    }
+                }
+            }
+        }
+
+        function createExplosion(cx, cy, radius) {
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist <= radius) {
+                        const nx = cx + dx, ny = cy + dy;
+                        if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H) {
+                            const nidx = ny * GRID_W + nx;
+                            if (!isIndestructible(nx, ny)) {
+                                if (dist < radius * 0.5) {
+                                    nextGrid[nidx] = ELEMENTS.FIRE;
+                                } else if (Math.random() < 0.5) {
+                                    nextGrid[nidx] = ELEMENTS.FIRE;
+                                } else {
+                                    nextGrid[nidx] = ELEMENTS.EMPTY;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Rendering
+        let currentImageData;
+
+        function render() {
+            currentImageData = ctx.createImageData(canvas.width, canvas.height);
+            const data = currentImageData.data;
+            
+            for (let y = 0; y < GRID_H; y++) {
+                for (let x = 0; x < GRID_W; x++) {
+                    const cell = grid[y * GRID_W + x];
+                    if (cell === ELEMENTS.EMPTY) continue;
+                    
+                    const colors = COLORS[cell];
+                    let r, g, b;
+                    if (Array.isArray(colors[0])) {
+                        const idx = (y * 7 + x * 13) % colors.length;
+                        [r, g, b] = colors[idx];
+                    } else {
+                        [r, g, b] = colors;
+                    }
+                    
+                    const variation = ((x + y) % 3) * 8 - 8;
+                    r = Math.max(0, Math.min(255, r + variation));
+                    g = Math.max(0, Math.min(255, g + variation));
+                    b = Math.max(0, Math.min(255, b + variation));
+                    
+                    for (let py = 0; py < CELL_SIZE; py++) {
+                        for (let px = 0; px < CELL_SIZE; px++) {
+                            const pixelX = x * CELL_SIZE + px;
+                            const pixelY = y * CELL_SIZE + py;
+                            if (pixelX < canvas.width && pixelY < canvas.height) {
+                                const pixelIdx = (pixelY * canvas.width + pixelX) * 4;
+                                data[pixelIdx] = r;
+                                data[pixelIdx + 1] = g;
+                                data[pixelIdx + 2] = b;
+                                data[pixelIdx + 3] = 255;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            ctx.putImageData(currentImageData, 0, 0);
+        }
+
+        function drawAt(canvasX, canvasY) {
+            const gx = Math.floor(canvasX / CELL_SIZE);
+            const gy = Math.floor(canvasY / CELL_SIZE);
+            
+            const elementMap = {
+                'sand': ELEMENTS.SAND,
+                'water': ELEMENTS.WATER,
+                'soil': ELEMENTS.SOIL,
+                'stone': ELEMENTS.STONE,
+                'sodium': ELEMENTS.SODIUM,
+                'fire': ELEMENTS.FIRE,
+                'oil': ELEMENTS.OIL,
+                'plant': ELEMENTS.PLANT,
+                'gunpowder': ELEMENTS.GUNPOWDER,
+                'ice': ELEMENTS.ICE,
+                'lava': ELEMENTS.LAVA,
+                'steam': ELEMENTS.STEAM,
+                'wood': ELEMENTS.WOOD,
+                'glass': ELEMENTS.GLASS,
+            };
+            
+            if (currentElement === 'erase') {
+                const r = brushSize;
+                for (let dy = -r; dy <= r; dy++) {
+                    for (let dx = -r; dx <= r; dx++) {
+                        if (dx * dx + dy * dy <= r * r) {
+                            const nx = gx + dx, ny = gy + dy;
+                            if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H) {
+                                grid[ny * GRID_W + nx] = ELEMENTS.EMPTY;
+                            }
+                        }
+                    }
+                }
+                return;
+            }
+            
+            if (currentElement === 'clear') {
+                grid.fill(ELEMENTS.EMPTY);
+                return;
+            }
+            
+            const element = elementMap[currentElement];
+            if (element === undefined) return;
+            
+            const r = brushSize;
+            for (let dy = -r; dy <= r; dy++) {
+                for (let dx = -r; dx <= r; dx++) {
+                    if (dx * dx + dy * dy <= r * r) {
+                        const nx = gx + dx, ny = gy + dy;
+                        if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H) {
+                            if (grid[ny * GRID_W + nx] === ELEMENTS.EMPTY || Math.random() < 0.3) {
+                                grid[ny * GRID_W + nx] = element;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Event listeners
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            drawAt(e.clientX - rect.left, e.clientY - rect.top);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+            if (isDrawing) {
+                drawAt(mouseX, mouseY);
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => isDrawing = false);
+        canvas.addEventListener('mouseleave', () => isDrawing = false);
+
+        // Touch support
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            drawAt(touch.clientX - rect.left, touch.clientY - rect.top);
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (isDrawing) {
+                const rect = canvas.getBoundingClientRect();
+                const touch = e.touches[0];
+                drawAt(touch.clientX - rect.left, touch.clientY - rect.top);
+            }
+        });
+
+        canvas.addEventListener('touchend', () => isDrawing = false);
+
+        // UI Element buttons
+        document.querySelectorAll('.element-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const element = btn.dataset.element;
+                if (element === 'clear') {
+                    grid.fill(ELEMENTS.EMPTY);
+                    return;
+                }
+                currentElement = element;
+                document.querySelectorAll('.element-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        // Brush slider
+        const brushSlider = document.getElementById('brushSize');
+        const sizeValue = document.getElementById('sizeValue');
+        brushSlider.addEventListener('input', (e) => {
+            brushSize = parseInt(e.target.value);
+            sizeValue.textContent = brushSize;
+        });
+
+        // Loop diagnostics
+        let frameCount = 0;
+        let lastFpsTime = performance.now();
+
+        function countParticles() {
+            let count = 0;
+            for (let i = 0; i < grid.length; i++) {
+                if (grid[i] !== ELEMENTS.EMPTY) count++;
+            }
+            return count;
+        }
+
+        function gameLoop() {
+            const now = performance.now();
+            frameCount++;
+            
+            if (now - lastFpsTime >= 1000) {
+                fpsEl.textContent = `FPS: ${frameCount}`;
+                particleCountEl.textContent = `Particles: ${countParticles()}`;
+                frameCount = 0;
+                lastFpsTime = now;
+            }
+            
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        
+        // Initial Sandbox pool layout
+        for (let y = GRID_H - 30; y < GRID_H - 5; y++) {
+            for (let x = Math.floor(GRID_W * 0.3); x < Math.floor(GRID_W * 0.7); x++) {
+                grid[y * GRID_W + x] = ELEMENTS.WATER;
+            }
+        }
+        
+        gameLoop();
+    </script>
+</body>
+</html>
